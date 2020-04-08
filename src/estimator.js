@@ -1,15 +1,7 @@
 const calculateCurrentlyInfected = (reportedCases, impactAmount) => reportedCases * impactAmount;
 
-const calculateInfectionsByRequestedTime = (data, currentlyInfected) => {
-  const { periodType, timeToElapse } = data;
-
-  const days = {
-    days: 1,
-    weeks: 7,
-    months: 30
-  };
-
-  const sets = (days[periodType] * timeToElapse) / 3;
+const calculateInfectionsByTime = (days, currentlyInfected) => {
+  const sets = days / 3;
   return currentlyInfected * (2 ** parseInt(sets, 10));
 };
 
@@ -25,18 +17,34 @@ const calculateHospitalBeds = (data, severeCasesByRequestedTime) => {
   return hospitalBedsByRequestedTime;
 };
 
-
 const impactFunction = (data, impactAmount) => {
-  const { reportedCases } = data;
+  const {
+    reportedCases, region, periodType, timeToElapse
+  } = data;
+  const { avgDailyIncomePopulation, avgDailyIncomeInUSD: avgDailyIncome } = region;
+
+  const daysObject = {
+    days: 1,
+    weeks: 7,
+    months: 30
+  };
+  const days = daysObject[periodType] * timeToElapse;
+
   const currentlyInfected = calculateCurrentlyInfected(reportedCases, impactAmount);
-  const infectionsByRequestedTime = calculateInfectionsByRequestedTime(data, currentlyInfected);
+  const infectionsByRequestedTime = calculateInfectionsByTime(days, currentlyInfected);
   const severeCasesByRequestedTime = calculateSevereCasesByRequestedTime(infectionsByRequestedTime);
   const hospitalBedsByRequestedTime = calculateHospitalBeds(data, severeCasesByRequestedTime);
+  const casesForICUByRequestedTime = infectionsByRequestedTime * 0.05;
+  const casesForVentilatorsByRequestedTime = infectionsByRequestedTime * 0.02;
+  const dollarsInF = (infectionsByRequestedTime * avgDailyIncomePopulation) * avgDailyIncome * days;
   return {
     currentlyInfected,
     infectionsByRequestedTime,
     severeCasesByRequestedTime,
-    hospitalBedsByRequestedTime
+    hospitalBedsByRequestedTime,
+    casesForICUByRequestedTime,
+    casesForVentilatorsByRequestedTime,
+    dollarsInFlight: dollarsInF
   };
 };
 
